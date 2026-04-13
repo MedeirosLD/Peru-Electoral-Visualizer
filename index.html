@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualizador Electoral - Perú</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Metropolis:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ── METROPOLIS via system fallback if Google fails ── */
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400&display=swap');
+
+  :root {
+    --bg: #0a0b0d;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #222630;
+    --border2: #2e3444;
+    --text: #e8eaf0;
+    --text2: #8a91a8;
+    --text3: #545c72;
+    --accent: #c9a84c;
+    --accent2: #e8c96a;
+    --elected: #22c55e;
+    --segunda: #eab308;
+    --noelecto: #8a91a8;
+    --font: 'Barlow', 'Metropolis', sans-serif;
+    --radius: 6px;
+    --sidebar: 340px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    grid-template-columns: var(--sidebar) 1fr;
+    height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    z-index: 100;
+    position: relative;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+    line-height: 1;
+  }
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border2);
+  }
+
+  .year-tabs {
+    display: flex;
+    gap: 2px;
+  }
+  .year-tab {
+    padding: 5px 12px;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text3);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+  .year-tab:hover { color: var(--text2); border-color: var(--border2); }
+  .year-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(201,168,76,0.08); }
+  .year-tab.future { opacity: 0.35; cursor: not-allowed; font-style: italic; }
+
+  .round-tabs {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    padding: 3px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .round-tab {
+    padding: 4px 14px;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .round-tab:hover { color: var(--text); }
+  .round-tab.active { background: var(--surface2); color: var(--text); }
+  .round-tab.disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .breadcrumb {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .breadcrumb-item { color: var(--text3); cursor: pointer; transition: color 0.1s; }
+  .breadcrumb-item:hover { color: var(--text2); }
+  .breadcrumb-item.active { color: var(--text2); cursor: default; }
+  .breadcrumb-sep { color: var(--text3); }
+
+  .sidebar-title {
+    padding: 16px 16px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  /* Results summary box */
+  .result-summary {
+    margin: 12px 16px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex-shrink: 0;
+  }
+  .result-location {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .result-winner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .winner-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .winner-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .winner-pct {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .winner-pct small {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    margin-left: 2px;
+  }
+  .winner-votes {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+
+  /* Turnout bar */
+  .turnout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 4px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .turnout-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .turnout-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Candidate bars */
+  .candidates-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+  }
+
+  .candidate-row {
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .candidate-row::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .candidate-row:hover { border-color: var(--border2); }
+
+  .compare-panel {
+    margin: 12px 16px 0;
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(24,28,36,0.96), rgba(17,19,24,0.98));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex-shrink: 0;
+  }
+  .compare-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .compare-title {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .compare-subtitle {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 600;
+  }
+  .compare-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+  }
+  .compare-year {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent2);
+    letter-spacing: 0.04em;
+  }
+  .compare-main {
+    min-width: 0;
+  }
+  .compare-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .compare-party {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .compare-metrics {
+    text-align: right;
+  }
+  .compare-pct {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .compare-margin {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.03em;
+  }
+  .compare-empty {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .cand-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .cand-info { flex: 1; min-width: 0; }
+  .cand-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cand-party {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 500;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cand-pct {
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .cand-votes {
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--text2);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .cand-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .cand-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .cand-status {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 5px;
+    display: inline-block;
+  }
+  .status-elected { background: rgba(34,197,94,0.15); color: var(--elected); }
+  .status-segunda { background: rgba(234,179,8,0.15); color: var(--segunda); }
+  .status-no { background: rgba(138,145,168,0.1); color: var(--noelecto); }
+
+  /* Color picker popup */
+  .color-edit-btn {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .candidate-row:hover .color-edit-btn { opacity: 1; }
+
+  /* MAP PANEL */
+  #map-panel {
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  #map-canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .map-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 999;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-family: var(--font);
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .tooltip-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .tooltip-winner {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 3px;
+  }
+  .tooltip-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .tooltip-cand { font-size: 12px; font-weight: 600; color: var(--text); }
+  .tooltip-pct { font-size: 12px; font-weight: 800; color: var(--text); margin-left: auto; }
+  .tooltip-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+  /* Map controls */
+  .map-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 10;
+  }
+  .map-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    cursor: pointer;
+    border-radius: var(--radius);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .map-btn:hover { background: var(--surface2); color: var(--text); }
+
+  /* Back button */
+  .back-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius);
+    display: none;
+    transition: all 0.15s;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--text3); }
+
+  /* Level indicator */
+  .level-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    padding: 5px 12px;
+    background: rgba(10,11,13,0.85);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Legend */
+  .map-legend {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 10;
+    background: rgba(10,11,13,0.85);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    backdrop-filter: blur(8px);
+    min-width: 160px;
+  }
+  .legend-title {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .legend-gradient {
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text3);
+    font-weight: 600;
+  }
+
+  /* Loading overlay */
+  #loading {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 16px;
+  }
+  .loading-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .loading-title span { color: var(--accent); }
+  .loading-bar-bg {
+    width: 220px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .loading-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: loadpulse 1.5s ease-in-out infinite;
+    width: 60%;
+  }
+  @keyframes loadpulse {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(260%); }
+  }
+
+  .future-notice {
+    margin: 16px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text3);
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .future-notice strong { color: var(--text2); display: block; margin-bottom: 4px; font-size: 13px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Color picker */
+  input[type=color] {
+    width: 0; height: 0; opacity: 0; position: absolute;
+  }
+
+  .map-overlay-label {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 5px 14px;
+    background: rgba(10,11,13,0.85);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-title">Visualizador Electoral <span>- Perú</span></div>
+  <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em">Cargando datos geoespaciales...</div>
+  <div class="loading-bar-bg"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="app" style="visibility:hidden">
+  <header>
+    <div class="logo">Visualizador Electoral <span>Perú</span></div>
+    <div class="header-divider"></div>
+    <div class="year-tabs" id="yearTabs">
+      <button class="year-tab active" data-year="2026">2026</button>
+      <button class="year-tab" data-year="2021">2021</button>
+      <button class="year-tab" data-year="2016">2016</button>
+      <button class="year-tab" data-year="2011">2011</button>
+      <button class="year-tab" data-year="2006">2006</button>
+      <button class="year-tab" data-year="2001">2001</button>
+      <button class="year-tab" data-year="2000">2000</button>
+      <button class="year-tab future" data-year="1995" title="Próximamente">1995</button>
+      <button class="year-tab future" data-year="1990" title="Próximamente">1990</button>
+      <button class="year-tab future" data-year="1985" title="Próximamente">1985</button>
+      <button class="year-tab future" data-year="1980" title="Próximamente">1980</button>
+    </div>
+    <div class="round-tabs" id="roundTabs">
+      <button class="round-tab active" data-round="1">1ª Vuelta</button>
+      <button class="round-tab" data-round="2">2ª Vuelta</button>
+    </div>
+  </header>
+
+  <div id="sidebar">
+    <div class="breadcrumb" id="breadcrumb">
+      <span class="breadcrumb-item active" data-level="dept">Peru</span>
+    </div>
+    <div id="sidebarContent">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <div id="map-panel">
+    <canvas id="map-canvas"></canvas>
+    <button class="back-btn" id="backBtn">← Volver</button>
+    <div class="level-indicator" id="levelIndicator">Departamentos</div>
+    <div class="map-legend" id="mapLegend"></div>
+    <div class="map-controls">
+      <button class="map-btn" id="zoomIn">+</button>
+      <button class="map-btn" id="zoomOut">−</button>
+      <button class="map-btn" id="zoomReset" title="Reset">⊙</button>
+    </div>
+  </div>
+</div>
+
+<div class="map-tooltip" id="tooltip"></div>
+<input type="color" id="colorPicker">
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA & STATE
+// ═══════════════════════════════════════════════════
+let APP = {
+  party_map: {},
+  party_map_2v: {},
+  depts: null,
+  provsByDept: {},
+  distrsByProv: {},
+  runtime2026: null,
+  historyByYear: {},
+  comparisonCache: {},
+  comparisonPending: {},
+};
+let STATE = {
+  year: 2026,
+  round: 1,
+  level: 'dept',   // dept | prov | dist
+  selectedDept: null,
+  selectedProv: null,
+  selectedDist: null,
+  selectedDeptCode: null,
+  selectedProvId: null,
+  selectedDistUbigeo: null,
+  colors: {}, // overrides
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  dragging: false,
+  lastX: 0, lastY: 0,
+  editingParty: null,
+};
+const GOD_MODE_JOIN_MISSING = false;
+const COMPARISON_YEARS = [2021, 2016, 2011, 2006, 2001, 2000];
+const RAW_2026_PATH = './2026_apuracion/resultado_presidencial.json';
+const RESULTS_GEO_CORE_ZIP = './resultados_geo/web_core.zip';
+const RESULTS_2026_PROVINCE_ALIASES = {
+  'ANCASH|ANTONIO RAIMONDI': 'ANTONIO RAYMONDI',
+};
+const RESULTS_2026_DISTRICT_ALIASES = {
+  'AMAZONAS|RODRIGUEZ DE MENDOZA|MILPUCC': 'MILPUC',
+  'AREQUIPA|AREQUIPA|SANTA RITA DE SIHUAS': 'SANTA RITA DE SIGUAS',
+  'AYACUCHO|PARINACOCHAS|SAN FRANCISCO DE RIVACAYCO': 'SAN FRANCISCO DE RAVACAYCO',
+  'HUANCAVELICA|ANGARAES|HUALLAY GRANDE': 'HUAYLLAY GRANDE',
+  'PUNO|EL COLLAO|CAPASO': 'CAPAZO',
+};
+
+const PERU_DEPTS = ['AMAZONAS','ANCASH','APURIMAC','AREQUIPA','AYACUCHO','CAJAMARCA','CALLAO','CUSCO','HUANCAVELICA','HUANUCO','ICA','JUNIN','LA LIBERTAD','LAMBAYEQUE','LIMA','LORETO','MADRE DE DIOS','MOQUEGUA','PASCO','PIURA','PUNO','SAN MARTIN','TACNA','TUMBES','UCAYALI'];
+const EXTERIOR_TOTALS_2021 = {
+  r1: {
+    electores: 997033,
+    validos: 161573,
+    blancos: 30524,
+    nulos: 35805,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'PARTIDO NACIONALISTA PERUANO': 1876,
+      'EL FRENTE AMPLIO POR JUSTICIA, VIDA Y LIBERTAD': 1083,
+      'PARTIDO MORADO': 6432,
+      'PERU PATRIA SEGURA': 1303,
+      'VICTORIA NACIONAL': 11559,
+      'ACCION POPULAR': 11607,
+      'AVANZA PAIS - PARTIDO DE INTEGRACION SOCIAL': 21519,
+      'PODEMOS PERU': 4162,
+      'JUNTOS POR EL PERU': 21170,
+      'PARTIDO POPULAR CRISTIANO - PPC': 4440,
+      'FUERZA POPULAR': 22866,
+      'UNION POR EL PERU': 955,
+      'RENOVACION POPULAR': 34704,
+      'RENACIMIENTO UNIDO NACIONAL': 742,
+      'PARTIDO DEMOCRATICO SOMOS PERU': 2867,
+      'PARTIDO POLITICO NACIONAL PERU LIBRE': 10600,
+      'DEMOCRACIA DIRECTA': 618,
+      'ALIANZA PARA EL PROGRESO': 3070
+    }
+  },
+  r2: {
+    // Ajuste manual pelo total oficial da ONPE para o 2º turno.
+    // Estes valores são o delta necessário entre Peru interno e o total nacional oficial.
+    electores: 997033,
+    validos: 334056,
+    blancos: 2009,
+    nulos: 27559,
+    participacion: 363624,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'PARTIDO POLITICO NACIONAL PERU LIBRE': 113081,
+      'FUERZA POPULAR': 220975
+    }
+  }
+};
+const EXTERIOR_TOTALS_2016 = {
+  r1: {
+    electores: 884924,
+    validos: 264344,
+    blancos: 60370,
+    nulos: 147313,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'FRENTE ESPERANZA': 6752,
+      'FUERZA POPULAR': 113351,
+      'ALIANZA POPULAR': 13061,
+      'EL FRENTE AMPLIO POR JUSTICIA, VIDA Y LIBERTAD': 33703,
+      'ACCION POPULAR': 26777,
+      'DEMOCRACIA DIRECTA': 1574,
+      'PERU POSIBLE': 2160,
+      'PROGRESANDO PERU': 1130,
+      'PARTIDO POLITICO ORDEN': 832,
+      'PERUANOS POR EL KAMBIO': 65004
+    }
+  },
+  r2: {
+    electores: 884924,
+    validos: 349939,
+    blancos: 2392,
+    nulos: 37198,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'PERUANOS POR EL KAMBIO': 178256,
+      'FUERZA POPULAR': 171683
+    }
+  }
+};
+const EXTERIOR_TOTALS_2011 = {
+  r1: {
+    electores: 754154,
+    validos: 309090,
+    blancos: 49394,
+    nulos: 44079,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'ADELANTE': 766,
+      'ALIANZA POR EL GRAN CAMBIO': 88245,
+      'ALIANZA SOLIDARIDAD NACIONAL': 41553,
+      'DESPERTAR NACIONAL': 1482,
+      'FONAVISTAS DEL PERU': 660,
+      'FUERZA 2011': 88487,
+      'FUERZA NACIONAL': 607,
+      'GANA PERU': 39775,
+      'JUSTICIA, TECNOLOGIA, ECOLOGIA': 555,
+      'PARTIDO DESCENTRALISTA FUERZA SOCIAL': 326,
+      'PERU POSIBLE': 46634
+    }
+  },
+  r2: {
+    electores: 754154,
+    validos: 340383,
+    blancos: 3395,
+    nulos: 35014,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'FUERZA 2011': 239551,
+      'GANA PERU': 100832
+    }
+  }
+};
+const EXTERIOR_TOTALS_2006 = {
+  r1: {
+    electores: 457891,
+    validos: 229883,
+    blancos: 40223,
+    nulos: 20622,
+    notes: 'Incluye voto exterior',
+    votes: {
+      'ALIANZA PARA EL PROGRESO': 537,
+      'ALIANZA POR EL FUTURO': 12000,
+      'AVANZA PAIS - PARTIDO DE INTEGRACION SOCIAL': 840,
+      'CON FUERZA PERU': 633,
+      'CONCERTACION DESCENTRALISTA': 1078,
+      'FRENTE DE CENTRO': 4079,
+      'FUERZA DEMOCRATICA': 281,
+      'MOVIMIENTO NUEVA IZQUIERDA': 618,
+      'PARTIDO APRISTA PERUANO': 38866,
+      'PARTIDO JUSTICIA NACIONAL': 674,
+      'PARTIDO RECONSTRUCCION DEMOCRATICA': 295,
+      'PARTIDO RENACIMIENTO ANDINO': 494,
+      'PARTIDO SOCIALISTA': 1788,
+      'PERU AHORA': 170,
+      'PROGRESEMOS PERU': 343,
+      'RESTAURACION NACIONAL': 3605,
+      'RESURGIMIENTO PERUANO': 297,
+      'UNIDAD NACIONAL': 133871,
+      'UNION POR EL PERU': 28923,
+      'Y SE LLAMA PERU': 491
+    }
+  },
+  r2: {
+    electores: 0,
+    validos: 0,
+    blancos: 0,
+    nulos: 0,
+    notes: 'Sin voto exterior agregado',
+    votes: {}
+  }
+};
+
+const EXTERIOR_TOTALS_2001 = {
+  r1: {
+    electores: 0,
+    validos: 0,
+    blancos: 0,
+    nulos: 0,
+    notes: 'Sin voto exterior agregado',
+    votes: {}
+  },
+  r2: {
+    electores: 0,
+    validos: 0,
+    blancos: 0,
+    nulos: 0,
+    notes: 'Sin voto exterior agregado',
+    votes: {}
+  }
+};
+
+const EXTERIOR_TOTALS_2000 = {
+  r1: {
+    electores: 0,
+    validos: 0,
+    blancos: 0,
+    nulos: 0,
+    notes: 'Sin voto exterior agregado',
+    votes: {}
+  },
+  r2: {
+    electores: 0,
+    validos: 0,
+    blancos: 0,
+    nulos: 0,
+    notes: 'Sin voto exterior agregado',
+    votes: {}
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// LOAD DATA
+// ═══════════════════════════════════════════════════
+const ZIP_ARCHIVE_CACHE = {};
+const ZIP_ENTRY_TEXT_CACHE = {};
+
+async function fetchJson(source) {
+  if (typeof source === 'object' && source?.zip && source?.entry) {
+    const text = await fetchZipText(source.zip, source.entry);
+    return JSON.parse(text);
+  }
+  const resp = await fetch(source);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} ao carregar ${source}`);
+  return resp.json();
+}
+
+async function fetchZipText(zipPath, entryName) {
+  const cacheKey = `${zipPath}::${entryName}`;
+  if (ZIP_ENTRY_TEXT_CACHE[cacheKey]) return ZIP_ENTRY_TEXT_CACHE[cacheKey];
+  const archive = await getZipArchive(zipPath);
+  const entry = archive.entries[entryName];
+  if (!entry) throw new Error(`Entrada ${entryName} nao encontrada em ${zipPath}`);
+  const bytes = await extractZipEntry(archive.bytes, entry);
+  const text = new TextDecoder('utf-8').decode(bytes);
+  ZIP_ENTRY_TEXT_CACHE[cacheKey] = text;
+  return text;
+}
+
+async function getZipArchive(zipPath) {
+  if (ZIP_ARCHIVE_CACHE[zipPath]) return ZIP_ARCHIVE_CACHE[zipPath];
+  const resp = await fetch(zipPath);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} ao carregar ${zipPath}`);
+  const bytes = new Uint8Array(await resp.arrayBuffer());
+  const archive = parseZipArchive(bytes);
+  ZIP_ARCHIVE_CACHE[zipPath] = archive;
+  return archive;
+}
+
+function parseZipArchive(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocdOffset = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset < 0) throw new Error('EOCD do ZIP nao encontrado');
+
+  const centralDirectorySize = dv.getUint32(eocdOffset + 12, true);
+  const centralDirectoryOffset = dv.getUint32(eocdOffset + 16, true);
+  const entries = {};
+  let ptr = centralDirectoryOffset;
+  const decoder = new TextDecoder('utf-8');
+
+  while (ptr < centralDirectoryOffset + centralDirectorySize) {
+    if (dv.getUint32(ptr, true) !== 0x02014b50) throw new Error('Cabecalho central de ZIP invalido');
+    const compressionMethod = dv.getUint16(ptr + 10, true);
+    const compressedSize = dv.getUint32(ptr + 20, true);
+    const uncompressedSize = dv.getUint32(ptr + 24, true);
+    const fileNameLength = dv.getUint16(ptr + 28, true);
+    const extraLength = dv.getUint16(ptr + 30, true);
+    const commentLength = dv.getUint16(ptr + 32, true);
+    const localHeaderOffset = dv.getUint32(ptr + 42, true);
+    const fileNameBytes = bytes.slice(ptr + 46, ptr + 46 + fileNameLength);
+    const fileName = decoder.decode(fileNameBytes).replace(/\\/g, '/');
+
+    entries[fileName] = {
+      compressionMethod,
+      compressedSize,
+      uncompressedSize,
+      localHeaderOffset,
+    };
+
+    ptr += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  return { bytes, entries };
+}
+
+async function extractZipEntry(bytes, entry) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const offset = entry.localHeaderOffset;
+  if (dv.getUint32(offset, true) !== 0x04034b50) throw new Error('Cabecalho local de ZIP invalido');
+  const fileNameLength = dv.getUint16(offset + 26, true);
+  const extraLength = dv.getUint16(offset + 28, true);
+  const dataStart = offset + 30 + fileNameLength + extraLength;
+  const compressed = bytes.slice(dataStart, dataStart + entry.compressedSize);
+
+  if (entry.compressionMethod === 0) return compressed;
+  if (entry.compressionMethod === 8) {
+    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  throw new Error(`Metodo ZIP nao suportado: ${entry.compressionMethod}`);
+}
+
+function normalizeName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/_/g, ' ')
+    .replace(/[^A-Z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function build2026ProvinceKey(dept, prov) {
+  const deptKey = normalizeName(dept);
+  let provKey = normalizeName(prov);
+  const alias = RESULTS_2026_PROVINCE_ALIASES[`${deptKey}|${provKey}`];
+  if (alias) provKey = alias;
+  return `${deptKey}|${provKey}`;
+}
+
+function get2026CanonicalDistrictName(dept, prov, dist) {
+  const deptKey = normalizeName(dept);
+  let provKey = normalizeName(prov);
+  const provAlias = RESULTS_2026_PROVINCE_ALIASES[`${deptKey}|${provKey}`];
+  if (provAlias) provKey = provAlias;
+  let distKey = normalizeName(dist);
+  const distAlias = RESULTS_2026_DISTRICT_ALIASES[`${deptKey}|${provKey}|${distKey}`];
+  if (distAlias) distKey = distAlias;
+  return distKey;
+}
+
+function build2026DistrictKey(dept, prov, dist) {
+  const deptKey = normalizeName(dept);
+  let provKey = normalizeName(prov);
+  const provAlias = RESULTS_2026_PROVINCE_ALIASES[`${deptKey}|${provKey}`];
+  if (provAlias) provKey = provAlias;
+  const distKey = get2026CanonicalDistrictName(deptKey, provKey, dist);
+  return `${deptKey}|${provKey}|${distKey}`;
+}
+
+function build2026Result(node) {
+  const meta = node?.metadatos_acta || {};
+  const validos = Number(node?.votos_validos || meta.total_votos_validos_acta || 0);
+  const blancos = Number(meta.votos_blancos || 0);
+  const nulos = Number(meta.votos_nulos || 0);
+  const emitidos = Number(meta.total_votos_emitidos || (validos + blancos + nulos) || 0);
+  return {
+    votes: { ...(node?.partidos || {}) },
+    validos,
+    electores: 0,
+    blancos,
+    nulos,
+    participacion: emitidos,
+  };
+}
+
+function build2026PartyMap(raw) {
+  const partyMap = {};
+  for (const item of raw?.resultados_primera_vuelta || []) {
+    const candidatura = item?.candidatura || {};
+    partyMap[item.partido] = {
+      candidate: candidatura.presidente || candidatura.partido || item.partido,
+      party: candidatura.partido || item.partido,
+      color: candidatura.color || '#888888',
+    };
+  }
+  return partyMap;
+}
+
+function build2026RunoffMap(raw, partyMap) {
+  const runoffMap = {};
+  for (const item of raw?.pasan_segunda_vuelta_detalle || []) {
+    const key = item?.partido_onpe;
+    if (key && partyMap[key]) runoffMap[key] = { ...partyMap[key] };
+  }
+  return runoffMap;
+}
+
+function build2026Runtime(raw) {
+  const territorial = raw?.territorial_primera_vuelta || {};
+  const runtime = {
+    party_map: build2026PartyMap(raw),
+    party_map_2v: {},
+    depts: {},
+    provs: {},
+    distrs: {},
+    districtNamesByProvince: {},
+    missingDistrictsByProvId: {},
+    notesByProvId: {},
+    exterior: {
+      r1: build2026Result(territorial.extranjero_total || {}),
+      r2: { votes: {}, validos: 0, electores: 0, blancos: 0, nulos: 0, participacion: 0 },
+    },
+  };
+
+  runtime.party_map_2v = build2026RunoffMap(raw, runtime.party_map);
+
+  for (const [dept, node] of Object.entries(territorial.por_departamento_detalle || {})) {
+    runtime.depts[normalizeName(dept)] = build2026Result(node);
+  }
+
+  for (const [dept, provs] of Object.entries(territorial.por_provincia || {})) {
+    for (const [prov, node] of Object.entries(provs || {})) {
+      runtime.provs[build2026ProvinceKey(dept, prov)] = build2026Result(node);
+    }
+  }
+
+  for (const [dept, provs] of Object.entries(territorial.por_distrito || {})) {
+    for (const [prov, distrs] of Object.entries(provs || {})) {
+      const provKey = build2026ProvinceKey(dept, prov);
+      runtime.districtNamesByProvince[provKey] = [];
+      for (const [dist, node] of Object.entries(distrs || {})) {
+        runtime.distrs[build2026DistrictKey(dept, prov, dist)] = build2026Result(node);
+        runtime.districtNamesByProvince[provKey].push(get2026CanonicalDistrictName(dept, prov, dist));
+      }
+    }
+  }
+
+  return runtime;
+}
+
+function apply2026DeptResults(collection) {
+  for (const feat of collection.features || []) {
+    feat.properties.r1 = APP.runtime2026.depts[normalizeName(feat.properties.nombdep)] || null;
+    feat.properties.r2 = null;
+  }
+  return collection;
+}
+
+function apply2026ProvinceResults(collection) {
+  for (const feat of collection.features || []) {
+    feat.properties.r1 = APP.runtime2026.provs[build2026ProvinceKey(feat.properties.nombdep, feat.properties.nombprov)] || null;
+    feat.properties.r2 = null;
+  }
+  return collection;
+}
+
+function apply2026DistrictResults(collection) {
+  const matched = new Set();
+  for (const feat of collection.features || []) {
+    const key = build2026DistrictKey(feat.properties.nombdep, feat.properties.nombprov, feat.properties.nombdist);
+    feat.properties.r1 = APP.runtime2026.distrs[key] || null;
+    feat.properties.r2 = null;
+    matched.add(normalizeName(feat.properties.nombdist));
+  }
+
+  const sample = collection.features?.[0]?.properties;
+  if (!sample) return collection;
+
+  const provKey = build2026ProvinceKey(sample.nombdep, sample.nombprov);
+  const provId = String(sample.idprov).padStart(4, '0');
+  const rawNames = APP.runtime2026.districtNamesByProvince[provKey] || [];
+  const missing = rawNames.filter(name => !matched.has(name));
+  APP.runtime2026.missingDistrictsByProvId[provId] = missing;
+  APP.runtime2026.notesByProvId[provId] = missing.length
+    ? `El JSON 2026 incluye ${missing.length} distrito(s) sin geometria equivalente en la base 2021: ${missing.slice(0, 4).join(', ')}${missing.length > 4 ? ', ...' : ''}.`
+    : '';
+
+  return collection;
+}
+
+function updateRoundTabs() {
+  const hasRound2 = STATE.year !== 2026;
+  const roundTwoBtn = document.querySelector('.round-tab[data-round="2"]');
+  if (!roundTwoBtn) return;
+  roundTwoBtn.classList.toggle('disabled', !hasRound2);
+  roundTwoBtn.title = hasRound2 ? '' : 'Solo hay JSON del primer turno de 2026';
+  if (!hasRound2 && STATE.round === 2) {
+    STATE.round = 1;
+    document.querySelectorAll('.round-tab').forEach(b => b.classList.remove('active'));
+    const roundOneBtn = document.querySelector('.round-tab[data-round="1"]');
+    if (roundOneBtn) roundOneBtn.classList.add('active');
+  }
+}
+
+function getYearPaths(year) {
+  if (year === 2026) {
+    return {
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: 'depts.json' },
+      provsZip: './resultados_geo/web_2021_provs.zip',
+      distrsZip: './resultados_geo/web_2021_distrs.zip',
+      raw2026: RAW_2026_PATH,
+      useRaw2026: true,
+    };
+  }
+  if (year === 2000) {
+    return {
+      meta: { zip: RESULTS_GEO_CORE_ZIP, entry: '2000_app_meta.json' },
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: '2000_depts.json' },
+      provsZip: './resultados_geo/web_2000_provs.zip',
+      distrsZip: './resultados_geo/web_2000_distrs.zip',
+    };
+  }
+  if (year === 2001) {
+    return {
+      meta: { zip: RESULTS_GEO_CORE_ZIP, entry: '2001_app_meta.json' },
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: '2001_depts.json' },
+      provsZip: './resultados_geo/web_2001_provs.zip',
+      distrsZip: './resultados_geo/web_2001_distrs.zip',
+    };
+  }
+  if (year === 2006) {
+    return {
+      meta: { zip: RESULTS_GEO_CORE_ZIP, entry: '2006_app_meta.json' },
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: '2006_depts.json' },
+      provsZip: './resultados_geo/web_2006_provs.zip',
+      distrsZip: './resultados_geo/web_2006_distrs.zip',
+    };
+  }
+  if (year === 2011) {
+    return {
+      meta: { zip: RESULTS_GEO_CORE_ZIP, entry: '2011_app_meta.json' },
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: '2011_depts.json' },
+      provsZip: './resultados_geo/web_2011_provs.zip',
+      distrsZip: './resultados_geo/web_2011_distrs.zip',
+    };
+  }
+  if (year === 2016) {
+    return {
+      meta: { zip: RESULTS_GEO_CORE_ZIP, entry: '2016_app_meta.json' },
+      depts: { zip: RESULTS_GEO_CORE_ZIP, entry: '2016_depts.json' },
+      provsZip: './resultados_geo/web_2016_provs.zip',
+      distrsZip: './resultados_geo/web_2016_distrs.zip',
+    };
+  }
+  return {
+    meta: { zip: RESULTS_GEO_CORE_ZIP, entry: 'app_meta.json' },
+    depts: { zip: RESULTS_GEO_CORE_ZIP, entry: 'depts.json' },
+    provsZip: './resultados_geo/web_2021_provs.zip',
+    distrsZip: './resultados_geo/web_2021_distrs.zip',
+  };
+}
+
+function getExteriorTotals() {
+  if (STATE.year === 2026 && APP.runtime2026) return APP.runtime2026.exterior;
+  if (STATE.year === 2000) return EXTERIOR_TOTALS_2000;
+  if (STATE.year === 2001) return EXTERIOR_TOTALS_2001;
+  if (STATE.year === 2006) return EXTERIOR_TOTALS_2006;
+  if (STATE.year === 2011) return EXTERIOR_TOTALS_2011;
+  if (STATE.year === 2016) return EXTERIOR_TOTALS_2016;
+  return EXTERIOR_TOTALS_2021;
+}
+
+async function loadData() {
+  let lastError = null;
+  const paths = getYearPaths(STATE.year);
+  APP.provsByDept = {};
+  APP.distrsByProv = {};
+  APP.runtime2026 = null;
+  try {
+    if (paths.useRaw2026) {
+      const [raw2026, depts] = await Promise.all([
+        fetchJson(paths.raw2026),
+        fetchJson(paths.depts),
+      ]);
+      APP.runtime2026 = build2026Runtime(raw2026);
+      APP.party_map = APP.runtime2026.party_map || {};
+      APP.party_map_2v = APP.runtime2026.party_map_2v || {};
+      APP.depts = apply2026DeptResults(depts);
+    } else {
+      const [meta, depts] = await Promise.all([
+        fetchJson(paths.meta),
+        fetchJson(paths.depts),
+      ]);
+      APP.party_map = meta.party_map || {};
+      APP.party_map_2v = meta.party_map_2v || {};
+      APP.depts = depts;
+    }
+  } catch (error) {
+    lastError = error;
+  }
+
+  if (!APP.depts) {
+    const loading = document.getElementById('loading');
+    loading.innerHTML = `
+      <div class="loading-title">Visualizador Electoral <span>Peru</span></div>
+      <div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0.04em;text-align:center;max-width:420px;line-height:1.5">
+        No se pudieron cargar los datos optimizados desde <code>resultados_geo</code>.<br>
+        ${String(lastError || 'Error desconocido')}
+      </div>
+    `;
+    throw lastError || new Error('No se pudieron cargar los datos del visualizador');
+  }
+
+  updateRoundTabs();
+
+  const pm = APP.party_map || {};
+  const pm2 = APP.party_map_2v || {};
+  for (const [col, info] of Object.entries(pm)) {
+    STATE.colors[col] = info.color;
+  }
+  for (const [col, info] of Object.entries(pm2)) {
+    STATE.colors[col] = info.color;
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.visibility = 'visible';
+  await initMap();
+  renderSidebar();
+  updateBreadcrumb();
+}
+
+async function ensureProvinceData() {
+  if (!STATE.selectedDeptCode) return;
+  if (APP.provsByDept[STATE.selectedDeptCode]) return;
+  const paths = getYearPaths(STATE.year);
+  const collection = await fetchJson({ zip: paths.provsZip, entry: `${STATE.selectedDeptCode}.json` });
+  APP.provsByDept[STATE.selectedDeptCode] = paths.useRaw2026 ? apply2026ProvinceResults(collection) : collection;
+}
+
+async function ensureDistrictData() {
+  if (!STATE.selectedProvId) return;
+  if (APP.distrsByProv[STATE.selectedProvId]) return;
+  const paths = getYearPaths(STATE.year);
+  const collection = await fetchJson({ zip: paths.distrsZip, entry: `${STATE.selectedProvId}.json` });
+  APP.distrsByProv[STATE.selectedProvId] = paths.useRaw2026 ? apply2026DistrictResults(collection) : collection;
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function getPartyMap() {
+  return STATE.round === 1 ? APP.party_map : APP.party_map_2v;
+}
+
+function getExteriorTotalsForYear(year) {
+  if (year === 2000) return EXTERIOR_TOTALS_2000;
+  if (year === 2001) return EXTERIOR_TOTALS_2001;
+  if (year === 2006) return EXTERIOR_TOTALS_2006;
+  if (year === 2011) return EXTERIOR_TOTALS_2011;
+  if (year === 2016) return EXTERIOR_TOTALS_2016;
+  return EXTERIOR_TOTALS_2021;
+}
+
+function getColor(col) {
+  return STATE.colors[col] || '#888';
+}
+
+function getWinner(votes, validVotes) {
+  if (!votes || !validVotes || validVotes === 0) return null;
+  let maxV = 0, winner = null;
+  for (const [col, v] of Object.entries(votes)) {
+    if (v > maxV) { maxV = v; winner = col; }
+  }
+  if (!winner) return null;
+  return { col: winner, pct: maxV / validVotes * 100, votes: maxV };
+}
+
+function getSortedResults(votes, validVotes) {
+  if (!votes || !validVotes) return [];
+  return Object.entries(votes)
+    .map(([col, v]) => ({ col, votes: v, pct: v / validVotes * 100 }))
+    .sort((a, b) => b.votes - a.votes);
+}
+
+function getComparisonScope() {
+  if (STATE.year !== 2026) return null;
+  if (STATE.level === 'dept') {
+    return {
+      key: 'national',
+      kind: 'national',
+      title: 'Historico del mismo recorte',
+      subtitle: 'Ganador y margen en 1ra vuelta',
+    };
+  }
+  if (STATE.level === 'prov' && STATE.selectedDept && STATE.selectedDeptCode) {
+    return {
+      key: `dept:${STATE.selectedDeptCode}`,
+      kind: 'dept',
+      dept: STATE.selectedDept,
+      deptCode: STATE.selectedDeptCode,
+      title: `Historico de ${STATE.selectedDept}`,
+      subtitle: 'Ganador y margen en 1ra vuelta',
+    };
+  }
+  if (STATE.level === 'dist' && STATE.selectedProv && STATE.selectedDeptCode && STATE.selectedProvId) {
+    if (STATE.selectedDist && STATE.selectedDistUbigeo) {
+      return {
+        key: `dist:${STATE.selectedDistUbigeo}`,
+        kind: 'dist',
+        dept: STATE.selectedDept,
+        deptCode: STATE.selectedDeptCode,
+        prov: STATE.selectedProv,
+        provId: STATE.selectedProvId,
+        dist: STATE.selectedDist,
+        distUbigeo: STATE.selectedDistUbigeo,
+        title: `Historico de ${STATE.selectedDist}`,
+        subtitle: 'Ganador y margen en 1ra vuelta',
+      };
+    }
+    return {
+      key: `prov:${STATE.selectedProvId}`,
+      kind: 'prov',
+      dept: STATE.selectedDept,
+      deptCode: STATE.selectedDeptCode,
+      prov: STATE.selectedProv,
+      provId: STATE.selectedProvId,
+      title: `Historico de ${STATE.selectedProv}`,
+      subtitle: 'Ganador y margen en 1ra vuelta',
+    };
+  }
+  return null;
+}
+
+async function ensureHistoricalYearBase(year) {
+  const store = APP.historyByYear[year] || (APP.historyByYear[year] = { provsByDept: {}, distrsByProv: {} });
+  if (store.meta && store.depts) return store;
+  const paths = getYearPaths(year);
+  const [meta, depts] = await Promise.all([
+    fetchJson(paths.meta),
+    fetchJson(paths.depts),
+  ]);
+  store.meta = meta;
+  store.depts = depts;
+  return store;
+}
+
+async function ensureHistoricalProvinceCollection(year, deptCode) {
+  const store = await ensureHistoricalYearBase(year);
+  if (store.provsByDept[deptCode]) return store.provsByDept[deptCode];
+  const paths = getYearPaths(year);
+  store.provsByDept[deptCode] = await fetchJson({ zip: paths.provsZip, entry: `${deptCode}.json` });
+  return store.provsByDept[deptCode];
+}
+
+async function ensureHistoricalDistrictCollection(year, provId) {
+  const store = await ensureHistoricalYearBase(year);
+  if (store.distrsByProv[provId]) return store.distrsByProv[provId];
+  const paths = getYearPaths(year);
+  store.distrsByProv[provId] = await fetchJson({ zip: paths.distrsZip, entry: `${provId}.json` });
+  return store.distrsByProv[provId];
+}
+
+function getNationalAggregateFromDepts(year, depts) {
+  const allRes = depts.features
+    .filter(f => PERU_DEPTS.includes(f.properties.nombdep))
+    .map(f => f.properties.r1);
+
+  let national = { votes: {}, validos: 0, electores: 0, blancos: 0, nulos: 0, participacion: 0, notes: [] };
+  for (const r of allRes) {
+    if (!r) continue;
+    national.validos += r.validos || 0;
+    national.electores += r.electores || 0;
+    national.blancos += r.blancos || 0;
+    national.nulos += r.nulos || 0;
+    national.participacion += (r.validos || 0) + (r.blancos || 0) + (r.nulos || 0);
+    for (const [col, v] of Object.entries(r.votes || {})) {
+      national.votes[col] = (national.votes[col] || 0) + v;
+    }
+  }
+  const exterior = getExteriorTotalsForYear(year).r1;
+  return mergeResults(national, exterior);
+}
+
+async function getHistoricalComparisonEntry(year, scope) {
+  const store = await ensureHistoricalYearBase(year);
+  let res = null;
+
+  if (scope.kind === 'national') {
+    res = getNationalAggregateFromDepts(year, store.depts);
+  } else if (scope.kind === 'dept') {
+    const feat = store.depts.features.find(f => f.properties.nombdep === scope.dept);
+    res = feat?.properties?.r1 || null;
+  } else if (scope.kind === 'prov') {
+    const collection = await ensureHistoricalProvinceCollection(year, scope.deptCode);
+    const feat = collection.features.find(f => String(f.properties.idprov).padStart(4, '0') === scope.provId);
+    res = feat?.properties?.r1 || null;
+  } else if (scope.kind === 'dist') {
+    const collection = await ensureHistoricalDistrictCollection(year, scope.provId);
+    let feat = collection.features.find(f => String(f.properties.ubigeo).split('.')[0].padStart(6, '0') === scope.distUbigeo);
+    if (!feat) {
+      feat = collection.features.find(f =>
+        f.properties.nombdep === scope.dept &&
+        f.properties.nombprov === scope.prov &&
+        f.properties.nombdist === scope.dist
+      );
+    }
+    res = feat?.properties?.r1 || null;
+  }
+
+  if (!res || !res.votes || !res.validos) return null;
+  const sorted = getSortedResults(res.votes, res.validos);
+  if (!sorted.length) return null;
+  const winner = sorted[0];
+  const runnerUp = sorted[1] || { pct: 0 };
+  const info = (store.meta?.party_map || {})[winner.col] || {};
+  return {
+    year,
+    col: winner.col,
+    candidate: info.candidate || winner.col,
+    party: info.party || winner.col,
+    color: info.color || '#888888',
+    pct: winner.pct,
+    margin: winner.pct - runnerUp.pct,
+  };
+}
+
+async function requestComparisonData(scope) {
+  if (!scope || APP.comparisonPending[scope.key]) return;
+  APP.comparisonPending[scope.key] = true;
+  try {
+    const rows = [];
+    for (const year of COMPARISON_YEARS) {
+      const row = await getHistoricalComparisonEntry(year, scope);
+      if (row) rows.push(row);
+    }
+    APP.comparisonCache[scope.key] = rows;
+  } catch (error) {
+    APP.comparisonCache[scope.key] = { error: String(error) };
+  } finally {
+    delete APP.comparisonPending[scope.key];
+    const currentScope = getComparisonScope();
+    if (currentScope && currentScope.key === scope.key) renderSidebar();
+  }
+}
+
+function renderComparisonSection() {
+  const scope = getComparisonScope();
+  if (!scope) return '';
+  const cached = APP.comparisonCache[scope.key];
+  if (!cached) {
+    requestComparisonData(scope);
+    return `<div class="compare-panel">
+      <div class="compare-header">
+        <div class="compare-title">${scope.title}</div>
+        <div class="compare-subtitle">${scope.subtitle}</div>
+      </div>
+      <div class="compare-empty">Cargando comparativo historico...</div>
+    </div>`;
+  }
+  if (cached.error) {
+    return `<div class="compare-panel">
+      <div class="compare-header">
+        <div class="compare-title">${scope.title}</div>
+        <div class="compare-subtitle">${scope.subtitle}</div>
+      </div>
+      <div class="compare-empty">No se pudo cargar el comparativo: ${cached.error}</div>
+    </div>`;
+  }
+  if (!cached.length) {
+    return `<div class="compare-panel">
+      <div class="compare-header">
+        <div class="compare-title">${scope.title}</div>
+        <div class="compare-subtitle">${scope.subtitle}</div>
+      </div>
+      <div class="compare-empty">No hay elecciones previas comparables para este recorte.</div>
+    </div>`;
+  }
+
+  let html = `<div class="compare-panel">
+    <div class="compare-header">
+      <div class="compare-title">${scope.title}</div>
+      <div class="compare-subtitle">${scope.subtitle}</div>
+    </div>
+    <div class="compare-list">`;
+
+  for (const item of cached) {
+    html += `<div class="compare-row">
+      <div class="compare-year">${item.year}</div>
+      <div class="compare-main">
+        <div class="compare-name" style="color:${item.color}">${item.candidate}</div>
+        <div class="compare-party">${item.party}</div>
+      </div>
+      <div class="compare-metrics">
+        <div class="compare-pct">${item.pct.toFixed(1)}%</div>
+        <div class="compare-margin">Margen +${item.margin.toFixed(1)} pts</div>
+      </div>
+    </div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+function getCandidateStatus(col) {
+  if (STATE.year === 2000) {
+    if (STATE.round === 1) {
+      if (col === 'ALIANZA ELECTORAL PERU 2000' || col === 'PARTIDO PERU POSIBLE') {
+        return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+      }
+      return `<span class="cand-status status-no">No Electo</span>`;
+    }
+    if (col === 'PERU 2000') {
+      return `<span class="cand-status status-elected">Electo</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+
+  if (STATE.year === 2001) {
+    if (STATE.round === 1) {
+      if (col === 'PARTIDO PERU POSIBLE' || col === 'PARTIDO APRISTA PERUANO') {
+        return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+      }
+      return `<span class="cand-status status-no">No Electo</span>`;
+    }
+    if (col === 'PERU POSIBLE') {
+      return `<span class="cand-status status-elected">Electo</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+
+  if (STATE.year === 2006) {
+    if (STATE.round === 1) {
+      if (col === 'UNION POR EL PERU' || col === 'PARTIDO APRISTA PERUANO') {
+        return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+      }
+      return `<span class="cand-status status-no">No Electo</span>`;
+    }
+    if (col === 'PARTIDO APRISTA PERUANO') {
+      return `<span class="cand-status status-elected">Electo</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+
+  if (STATE.year === 2011) {
+    if (STATE.round === 1) {
+      if (col === 'GANA PERU' || col === 'FUERZA 2011') {
+        return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+      }
+      return `<span class="cand-status status-no">No Electo</span>`;
+    }
+    if (col === 'GANA PERU') {
+      return `<span class="cand-status status-elected">Electo</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+
+  if (STATE.year === 2016) {
+    if (STATE.round === 1) {
+      if (col === 'FUERZA POPULAR' || col === 'PERUANOS POR EL KAMBIO') {
+        return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+      }
+      return `<span class="cand-status status-no">No Electo</span>`;
+    }
+    if (col === 'PERUANOS POR EL KAMBIO') {
+      return `<span class="cand-status status-elected">Electo</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+
+  if (STATE.year === 2026) {
+    return '';
+  }
+
+  if (STATE.round === 1) {
+    if (col === 'PARTIDO POLITICO NACIONAL PERU LIBRE' || col === 'FUERZA POPULAR') {
+      return `<span class="cand-status status-segunda">Segunda Vuelta</span>`;
+    }
+    return `<span class="cand-status status-no">No Electo</span>`;
+  }
+  if (col === 'PARTIDO POLITICO NACIONAL PERU LIBRE') {
+    return `<span class="cand-status status-elected">Electo</span>`;
+  }
+  return `<span class="cand-status status-no">No Electo</span>`;
+}
+
+function mergeResults(base, extra) {
+  const merged = {
+    votes: { ...(base?.votes || {}) },
+    validos: (base?.validos || 0) + (extra?.validos || 0),
+    electores: (base?.electores || 0) + (extra?.electores || 0),
+    blancos: (base?.blancos || 0) + (extra?.blancos || 0),
+    nulos: (base?.nulos || 0) + (extra?.nulos || 0),
+    participacion: (base?.participacion || 0) + (extra?.participacion || 0),
+    notes: [],
+  };
+
+  for (const [col, v] of Object.entries(extra?.votes || {})) {
+    merged.votes[col] = (merged.votes[col] || 0) + v;
+  }
+
+  if (base?.notes) merged.notes = merged.notes.concat(base.notes);
+  if (extra?.notes) merged.notes = merged.notes.concat(extra.notes);
+  return merged;
+}
+
+function getNationalAggregate() {
+  const allRes = STATE.round === 1
+    ? APP.depts.features.filter(f => PERU_DEPTS.includes(f.properties.nombdep)).map(f => f.properties.r1)
+    : APP.depts.features.filter(f => PERU_DEPTS.includes(f.properties.nombdep)).map(f => f.properties.r2);
+
+  let national = { votes: {}, validos: 0, electores: 0, blancos: 0, nulos: 0, participacion: 0, notes: [] };
+  for (const r of allRes) {
+    if (!r) continue;
+    national.validos += r.validos || 0;
+    national.electores += r.electores || 0;
+    national.blancos += r.blancos || 0;
+    national.nulos += r.nulos || 0;
+    national.participacion += (r.validos || 0) + (r.blancos || 0) + (r.nulos || 0);
+    for (const [col, v] of Object.entries(r.votes || {})) {
+      national.votes[col] = (national.votes[col] || 0) + v;
+    }
+  }
+
+  const exteriorTotals = getExteriorTotals();
+  const exterior = STATE.round === 1 ? exteriorTotals.r1 : exteriorTotals.r2;
+  return mergeResults(national, exterior);
+}
+
+// ═══════════════════════════════════════════════════
+// MAP RENDERING (Canvas SVG projection)
+// ═══════════════════════════════════════════════════
+let canvas, ctx, features = [], bbox = null;
+let hovered = null;
+let mapInitialized = false;
+
+async function initMap() {
+  if (!mapInitialized) {
+    canvas = document.getElementById('map-canvas');
+    ctx = canvas.getContext('2d');
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('click', onMapClick);
+    canvas.addEventListener('mousedown', e => { STATE.dragging = true; STATE.lastX = e.clientX; STATE.lastY = e.clientY; });
+    canvas.addEventListener('mouseup', () => STATE.dragging = false);
+    canvas.addEventListener('mouseleave', () => { STATE.dragging = false; hideTip(); });
+    canvas.addEventListener('wheel', onWheel, { passive: true });
+    document.getElementById('zoomIn').onclick = () => adjustZoom(1.3);
+    document.getElementById('zoomOut').onclick = () => adjustZoom(0.77);
+    document.getElementById('zoomReset').onclick = resetView;
+    document.getElementById('backBtn').onclick = goBack;
+    window.addEventListener('resize', () => { resizeCanvas(); drawMap(); });
+    mapInitialized = true;
+  }
+  resizeCanvas();
+  await setMapFeatures();
+  resetView();
+  drawMap();
+}
+
+function resizeCanvas() {
+  const panel = document.getElementById('map-panel');
+  canvas.width = panel.clientWidth;
+  canvas.height = panel.clientHeight;
+}
+
+async function setMapFeatures() {
+  hovered = null;
+  if (STATE.level === 'dept') {
+    features = APP.depts.features.filter(f => PERU_DEPTS.includes(f.properties.nombdep));
+  } else if (STATE.level === 'prov') {
+    await ensureProvinceData();
+    const collection = APP.provsByDept[STATE.selectedDeptCode];
+    features = collection ? collection.features : [];
+  } else {
+    await ensureDistrictData();
+    const collection = APP.distrsByProv[STATE.selectedProvId];
+    features = collection ? collection.features : [];
+  }
+  computeBBox();
+}
+
+function computeBBox() {
+  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const feat of features) {
+    const geom = feat.geometry;
+    const coords = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+    for (const poly of coords) {
+      for (const ring of poly) {
+        for (const [lng, lat] of ring) {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
+      }
+    }
+  }
+  bbox = { minLng, maxLng, minLat, maxLat };
+}
+
+function resetView() {
+  if (!bbox || !canvas) return;
+  const pad = 40;
+  const W = canvas.width - pad * 2;
+  const H = canvas.height - pad * 2;
+  const dLng = bbox.maxLng - bbox.minLng;
+  const dLat = bbox.maxLat - bbox.minLat;
+  const scaleX = W / dLng;
+  const scaleY = H / dLat;
+  STATE.zoom = Math.min(scaleX, scaleY);
+  const projW = dLng * STATE.zoom;
+  const projH = dLat * STATE.zoom;
+  STATE.panX = (canvas.width - projW) / 2 - bbox.minLng * STATE.zoom;
+  STATE.panY = (canvas.height + projH) / 2 + bbox.minLat * STATE.zoom;
+  drawMap();
+}
+
+function project(lng, lat) {
+  return [lng * STATE.zoom + STATE.panX, -lat * STATE.zoom + STATE.panY];
+}
+
+function unproject(px, py) {
+  return [(px - STATE.panX) / STATE.zoom, -(py - STATE.panY) / STATE.zoom];
+}
+
+function adjustZoom(factor) {
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  STATE.panX = cx + (STATE.panX - cx) * factor;
+  STATE.panY = cy + (STATE.panY - cy) * factor;
+  STATE.zoom *= factor;
+  drawMap();
+}
+
+function onWheel(e) {
+  const factor = e.deltaY < 0 ? 1.15 : 0.87;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  STATE.panX = mx + (STATE.panX - mx) * factor;
+  STATE.panY = my + (STATE.panY - my) * factor;
+  STATE.zoom *= factor;
+  drawMap();
+}
+
+function getFeatureResult(feat) {
+  const rkey = STATE.round === 1 ? 'r1' : 'r2';
+  const direct = feat.properties[rkey];
+  if (direct) return direct;
+  if (!GOD_MODE_JOIN_MISSING) return {};
+  if (STATE.year !== 2011) return {};
+
+  // Join temporary missing 2011 units to their parent geography.
+  if (STATE.level === 'prov') {
+    const deptFeat = APP.depts.features.find(f => f.properties.nombdep === feat.properties.nombdep);
+    if (deptFeat?.properties?.[rkey]) {
+      return {
+        ...deptFeat.properties[rkey],
+        _fallback: 'dept',
+      };
+    }
+  }
+
+  if (STATE.level === 'dist') {
+    const provCollection = APP.provsByDept[STATE.selectedDeptCode];
+    const provFeat = provCollection
+      ? provCollection.features.find(f => String(f.properties.idprov).padStart(4, '0') === String(feat.properties.idprov).padStart(4, '0'))
+      : null;
+    if (provFeat?.properties?.[rkey]) {
+      return {
+        ...provFeat.properties[rkey],
+        _fallback: 'prov',
+      };
+    }
+    const deptFeat = APP.depts.features.find(f => f.properties.nombdep === feat.properties.nombdep);
+    if (deptFeat?.properties?.[rkey]) {
+      return {
+        ...deptFeat.properties[rkey],
+        _fallback: 'dept',
+      };
+    }
+  }
+
+  return {};
+}
+
+function hexToRgb(hex) {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+function interpolateRgb(start, end, factor) {
+  return {
+    r: Math.round(start.r + (end.r - start.r) * factor),
+    g: Math.round(start.g + (end.g - start.g) * factor),
+    b: Math.round(start.b + (end.b - start.b) * factor),
+  };
+}
+
+function rgbToCss(rgb) {
+  return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+}
+
+function getScaleStep(pct) {
+  if (pct < 10) return 10;
+  if (pct > 95) return 95;
+  return Math.round(pct / 5) * 5;
+}
+
+function get5PctScaleColor(baseHex, pct) {
+  const base = hexToRgb(baseHex);
+  const white = { r: 255, g: 255, b: 255 };
+  const isYellow = base.r > 200 && base.g > 200 && base.b < 100;
+  const darkTarget = isYellow ? { r: 140, g: 60, b: 0 } : { r: 20, g: 20, b: 20 };
+
+  const lightWeights = {
+    10: 0.92,
+    15: 0.80,
+    20: 0.68,
+    25: 0.56,
+    30: 0.44,
+    35: 0.32,
+    40: 0.20,
+    45: 0.10,
+  };
+
+  const darkWeights = {
+    55: 0.10,
+    60: 0.20,
+    65: 0.32,
+    70: 0.44,
+    75: 0.56,
+    80: 0.65,
+    85: 0.75,
+    90: 0.85,
+    95: 0.93,
+  };
+
+  const step = getScaleStep(pct);
+  if (step === 50) return rgbToCss(base);
+  if (step < 50) return rgbToCss(interpolateRgb(base, white, lightWeights[step] ?? 0.1));
+  return rgbToCss(interpolateRgb(base, darkTarget, darkWeights[step] ?? 0.1));
+}
+
+function getFeatureColor(feat) {
+  const res = getFeatureResult(feat);
+  const votes = res.votes;
+  const valid = res.validos;
+  if (!votes || !valid) return 'rgb(24,28,36)';
+  const w = getWinner(votes, valid);
+  if (!w) return 'rgb(24,28,36)';
+  const baseColor = getColor(w.col);
+  return get5PctScaleColor(baseColor, w.pct);
+}
+
+function getBoundaryStyle(isHovered) {
+  if (STATE.level === 'dept') {
+    return {
+      color: isHovered ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.72)',
+      width: isHovered ? 1.8 : 1.15,
+    };
+  }
+  if (STATE.level === 'prov') {
+    return {
+      color: isHovered ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.58)',
+      width: isHovered ? 1.25 : 0.8,
+    };
+  }
+  return {
+    color: isHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.38)',
+    width: isHovered ? 0.95 : 0.5,
+  };
+}
+
+function drawFeature(feat, isHovered) {
+  const geom = feat.geometry;
+  const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+  ctx.beginPath();
+  for (const poly of polys) {
+    for (let ri = 0; ri < poly.length; ri++) {
+      const ring = poly[ri];
+      for (let i = 0; i < ring.length; i++) {
+        const [px, py] = project(ring[i][0], ring[i][1]);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    }
+  }
+  ctx.fillStyle = getFeatureColor(feat);
+  ctx.fill();
+  const boundary = getBoundaryStyle(isHovered);
+  ctx.strokeStyle = boundary.color;
+  ctx.lineWidth = boundary.width;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function drawMap() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const feat of features) {
+    drawFeature(feat, feat === hovered);
+  }
+  updateLegend();
+}
+
+function hitTest(px, py) {
+  for (let i = features.length - 1; i >= 0; i--) {
+    const feat = features[i];
+    const geom = feat.geometry;
+    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+    ctx.beginPath();
+    for (const poly of polys) {
+      for (const ring of poly) {
+        for (let j = 0; j < ring.length; j++) {
+          const [fx, fy] = project(ring[j][0], ring[j][1]);
+          j === 0 ? ctx.moveTo(fx, fy) : ctx.lineTo(fx, fy);
+        }
+        ctx.closePath();
+      }
+    }
+    if (ctx.isPointInPath(px, py)) return feat;
+  }
+  return null;
+}
+
+function onMouseMove(e) {
+  if (STATE.dragging) {
+    const dx = e.clientX - STATE.lastX;
+    const dy = e.clientY - STATE.lastY;
+    STATE.panX += dx; STATE.panY += dy;
+    STATE.lastX = e.clientX; STATE.lastY = e.clientY;
+    drawMap(); hideTip(); return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const feat = hitTest(mx, my);
+  if (feat !== hovered) { hovered = feat; drawMap(); }
+  if (feat) { showTip(feat, e.clientX, e.clientY); canvas.style.cursor = 'pointer'; }
+  else { hideTip(); canvas.style.cursor = 'default'; }
+}
+
+async function onMapClick(e) {
+  if (STATE.dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const feat = hitTest(mx, my);
+  if (!feat) return;
+  const props = feat.properties;
+  if (STATE.level === 'dept') {
+    STATE.selectedDept = props.nombdep;
+    STATE.selectedDeptCode = String(props.ccdd).padStart(2, '0');
+    STATE.level = 'prov';
+    STATE.selectedProv = null;
+    STATE.selectedDist = null;
+    STATE.selectedProvId = null;
+    STATE.selectedDistUbigeo = null;
+    document.getElementById('backBtn').style.display = 'block';
+  } else if (STATE.level === 'prov') {
+    STATE.selectedProv = props.nombprov;
+    STATE.selectedProvId = String(props.idprov).padStart(4, '0');
+    STATE.selectedDist = null;
+    STATE.selectedDistUbigeo = null;
+    STATE.level = 'dist';
+  } else if (STATE.level === 'dist') {
+    STATE.selectedDist = props.nombdist;
+    STATE.selectedDistUbigeo = String(props.ubigeo).padStart(6, '0');
+    renderSidebar();
+    updateBreadcrumb();
+    drawMap();
+    return;
+  }
+  await setMapFeatures();
+  resetView();
+  renderSidebar();
+  updateBreadcrumb();
+  document.getElementById('levelIndicator').textContent =
+    STATE.level === 'prov' ? 'Provincias' : 'Distritos';
+}
+
+async function goBack() {
+  if (STATE.level === 'dist') {
+    STATE.level = 'prov';
+    STATE.selectedProv = null;
+    STATE.selectedDist = null;
+    STATE.selectedProvId = null;
+    STATE.selectedDistUbigeo = null;
+    document.getElementById('levelIndicator').textContent = 'Provincias';
+  } else if (STATE.level === 'prov') {
+    STATE.level = 'dept';
+    STATE.selectedDept = null;
+    STATE.selectedDeptCode = null;
+    STATE.selectedProv = null;
+    STATE.selectedDist = null;
+    STATE.selectedProvId = null;
+    STATE.selectedDistUbigeo = null;
+    document.getElementById('backBtn').style.display = 'none';
+    document.getElementById('levelIndicator').textContent = 'Departamentos';
+  }
+  await setMapFeatures();
+  resetView();
+  renderSidebar();
+  updateBreadcrumb();
+}
+
+// ═══════════════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════════════
+function showTip(feat, cx, cy) {
+  const tip = document.getElementById('tooltip');
+  const props = feat.properties;
+  const res = getFeatureResult(feat);
+  const votes = res.votes || {};
+  const valid = res.validos || 0;
+  const w = getWinner(votes, valid);
+  const pm = getPartyMap();
+
+  let title = '';
+  if (STATE.level === 'dept') title = props.nombdep;
+  else if (STATE.level === 'prov') title = props.nombprov;
+  else title = props.nombdist;
+
+  let html = `<div class="tooltip-title">${title}</div>`;
+  if (w && pm[w.col]) {
+    const info = pm[w.col];
+    html += `<div class="tooltip-winner">
+      <div class="tooltip-dot" style="background:${getColor(w.col)}"></div>
+      <div class="tooltip-cand">${info.candidate}</div>
+      <div class="tooltip-pct">${w.pct.toFixed(1)}%</div>
+    </div>`;
+    html += `<div class="tooltip-sub">${valid.toLocaleString('es')} votos validos</div>`;
+    if (res._fallback === 'prov') {
+      html += `<div class="tooltip-sub" style="color:var(--text3)">God mode: heredado de la provincia</div>`;
+    } else if (res._fallback === 'dept') {
+      html += `<div class="tooltip-sub" style="color:var(--text3)">God mode: heredado del departamento</div>`;
+    }
+  } else {
+    html += `<div class="tooltip-sub" style="color:var(--text3)">Sin datos</div>`;
+  }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let tx = cx + 14, ty = cy - 10;
+  if (tx + tw > window.innerWidth - 8) tx = cx - tw - 14;
+  if (ty + th > window.innerHeight - 8) ty = cy - th + 10;
+  tip.style.left = tx + 'px';
+  tip.style.top = ty + 'px';
+}
+
+function hideTip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// LEGEND
+// ═══════════════════════════════════════════════════
+function updateLegend() {
+  // Find dominant winner across features
+  const winnerCounts = {};
+  for (const feat of features) {
+    const res = getFeatureResult(feat);
+    const w = getWinner(res.votes, res.validos);
+    if (w) winnerCounts[w.col] = (winnerCounts[w.col] || 0) + 1;
+  }
+  const topWinner = Object.entries(winnerCounts).sort((a,b)=>b[1]-a[1])[0];
+  const legend = document.getElementById('mapLegend');
+  if (!topWinner) { legend.style.display = 'none'; return; }
+  legend.style.display = 'block';
+  const col = topWinner[0];
+  const baseColor = getColor(col);
+  // Show top 3 winners
+  const pm = getPartyMap();
+  const topEntries = Object.entries(winnerCounts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  let html = `<div class="legend-title">Mapa degradado - intensidad (%)</div>`;
+  html += `<div style="display:grid;grid-template-columns:repeat(18,1fr);height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px">`;
+  for (let step = 10; step <= 95; step += 5) {
+    html += `<div style="background:${get5PctScaleColor(baseColor, step)}"></div>`;
+  }
+  html += `</div>`;
+  html += `<div class="legend-labels"><span>10%</span><span>50%</span><span>95%</span></div>`;
+  html += `<div style="height:6px"></div>`;
+  for (const [c, cnt] of topEntries) {
+    const info = pm[c];
+    if (!info) continue;
+    html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${getColor(c)};flex-shrink:0"></div>
+      <div style="font-size:10px;color:var(--text2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${info.candidate}</div>
+    </div>`;
+  }
+  legend.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════
+function renderSidebar() {
+  const container = document.getElementById('sidebarContent');
+  if (STATE.year !== 2026 && STATE.year !== 2021 && STATE.year !== 2016 && STATE.year !== 2011 && STATE.year !== 2006 && STATE.year !== 2001 && STATE.year !== 2000) {
+    container.innerHTML = `<div class="future-notice"><strong>Proximamente</strong>Los datos electorales de ${STATE.year} se anadiran pronto.</div>`;
+    return;
+  }
+
+  let res = null;
+  let locationLabel = 'Peru';
+  if (STATE.level === 'dept') {
+    res = getNationalAggregate();
+    locationLabel = 'Peru - Nacional';
+  } else if (STATE.level === 'prov' && STATE.selectedDept) {
+    const deptFeat = APP.depts.features.find(f => f.properties.nombdep === STATE.selectedDept);
+    res = deptFeat ? (STATE.round === 1 ? deptFeat.properties.r1 : deptFeat.properties.r2) : null;
+    locationLabel = STATE.selectedDept;
+  } else if (STATE.level === 'dist' && STATE.selectedProv) {
+    if (STATE.selectedDist && STATE.selectedDistUbigeo) {
+      const distCollection = APP.distrsByProv[STATE.selectedProvId];
+      const distFeat = distCollection
+        ? distCollection.features.find(f => String(f.properties.ubigeo).padStart(6, '0') === STATE.selectedDistUbigeo)
+        : null;
+      res = distFeat ? getFeatureResult(distFeat) : null;
+      locationLabel = STATE.selectedDist;
+    } else {
+      const provCollection = APP.provsByDept[STATE.selectedDeptCode];
+      const provFeat = provCollection ? provCollection.features.find(f => f.properties.nombdep === STATE.selectedDept && f.properties.nombprov === STATE.selectedProv) : null;
+      res = provFeat ? getFeatureResult(provFeat) : null;
+      locationLabel = STATE.selectedProv;
+    }
+  }
+
+  const pm = getPartyMap();
+  const votes = res ? (res.votes || {}) : {};
+  const valid = res ? (res.validos || 0) : 0;
+  const elec = res ? (res.electores || 0) : 0;
+  const blancos = res ? (res.blancos || 0) : 0;
+  const nulos = res ? (res.nulos || 0) : 0;
+  const emitidos = res ? (res.participacion || (valid + blancos + nulos)) : 0;
+  const sorted = getSortedResults(votes, valid);
+  const winner = getWinner(votes, valid);
+  const turnout = elec > 0 ? ((valid + blancos + nulos) / elec * 100) : 0;
+
+  let html = '';
+  if (res) {
+    html += `<div class="result-summary">
+      <div class="result-location">${locationLabel}</div>`;
+
+    if (winner && pm[winner.col]) {
+      const info = pm[winner.col];
+      html += `<div class="result-winner">
+        <div class="winner-dot" style="background:${getColor(winner.col)}"></div>
+        <div>
+          <div class="winner-name">${info.candidate}</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:500">${info.party}</div>
+        </div>
+      </div>
+      <div class="winner-pct">${winner.pct.toFixed(2)}<small>%</small></div>
+      <div class="winner-votes">${winner.votes.toLocaleString('es')} votos</div>`;
+    }
+
+    if (STATE.year === 2026) {
+      html += `<div class="turnout-row"><span>Votos emitidos</span><span>${emitidos.toLocaleString('es')}</span></div>`;
+    } else {
+      html += `<div class="turnout-row"><span>Participacion</span><span>${turnout.toFixed(1)}%</span></div>
+        <div class="turnout-bar-bg"><div class="turnout-bar-fill" style="width:${Math.min(100, turnout)}%"></div></div>`;
+    }
+
+    html += `<div style="display:flex;gap:12px;font-size:10px;color:var(--text3);font-weight:600">
+      <span>Validos: ${valid.toLocaleString('es')}</span>
+      <span>Blancos: ${blancos.toLocaleString('es')}</span>
+      <span>Nulos: ${nulos.toLocaleString('es')}</span>
+    </div>`;
+
+    if (STATE.level === 'dept') {
+      html += `<div style="margin-top:10px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.04em">
+        ${STATE.year === 2026
+          ? 'El total nacional incluye el exterior, pero el mapa sigue usando una base territorial de referencia.'
+          : 'Incluye los votos del exterior en el total nacional. El mapa muestra solo el territorio peruano.'}
+      </div>`;
+    }
+
+    if (STATE.year === 2026 && STATE.level === 'dist' && !STATE.selectedDist) {
+      const note = APP.runtime2026?.notesByProvId?.[STATE.selectedProvId];
+      if (note) {
+        html += `<div style="margin-top:10px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.04em">${note}</div>`;
+      }
+    }
+
+    if (res._fallback === 'prov') {
+      html += `<div style="margin-top:10px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.04em">
+        God mode temporal: este resultado fue heredado de su provincia para completar la unidad faltante.
+      </div>`;
+    } else if (res._fallback === 'dept') {
+      html += `<div style="margin-top:10px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.04em">
+        God mode temporal: este resultado fue heredado de su departamento para completar la unidad faltante.
+      </div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  if (STATE.year === 2026) {
+    html += renderComparisonSection();
+  }
+
+  html += `<div class="sidebar-title">Candidatos</div>`;
+  html += `<div class="candidates-list" id="candidatesList">`;
+
+  for (const { col, pct, votes: v } of sorted) {
+    const info = pm[col];
+    if (!info) continue;
+
+    const color = getColor(col);
+    const statusHtml = getCandidateStatus(col);
+
+    html += `<div class="candidate-row" data-col="${encodeURIComponent(col)}" style="border-left-color:${color}">
+      <div class="color-edit-btn" style="background:${color}" title="Cambiar color" onclick="openColorPicker(event, '${encodeURIComponent(col)}', '${color}')"></div>
+      <div class="cand-top">
+        <div class="cand-info">
+          <div class="cand-name">${info.candidate}</div>
+          <div class="cand-party">${info.party}</div>
+          <div class="cand-votes">${v.toLocaleString('es')} votos</div>
+        </div>
+        <div class="cand-pct" style="color:${color}">${pct.toFixed(2)}%</div>
+      </div>
+      <div class="cand-bar-bg">
+        <div class="cand-bar-fill" style="width:${Math.min(100, pct / sorted[0].pct * 100)}%;background:${color}"></div>
+      </div>
+      ${statusHtml}
+    </div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  let html = `<span class="breadcrumb-item ${STATE.level==='dept'?'active':''}" onclick="goToDept()">Peru</span>`;
+  if (STATE.selectedDept) {
+    html += `<span class="breadcrumb-sep">?</span>`;
+    html += `<span class="breadcrumb-item ${STATE.level==='prov'?'active':''}" onclick="goToProv()">${STATE.selectedDept}</span>`;
+  }
+  if (STATE.selectedProv) {
+    html += `<span class="breadcrumb-sep">?</span>`;
+    html += `<span class="breadcrumb-item ${STATE.level==='dist' && !STATE.selectedDist ? 'active' : ''}">${STATE.selectedProv}</span>`;
+  }
+  if (STATE.selectedDist) {
+    html += `<span class="breadcrumb-sep">?</span>`;
+    html += `<span class="breadcrumb-item active">${STATE.selectedDist}</span>`;
+  }
+  bc.innerHTML = html;
+}
+
+async function goToDept() {
+  STATE.level = 'dept';
+  STATE.selectedDept = null;
+  STATE.selectedDeptCode = null;
+  STATE.selectedProv = null;
+   STATE.selectedDist = null;
+  STATE.selectedProvId = null;
+  STATE.selectedDistUbigeo = null;
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('levelIndicator').textContent = 'Departamentos';
+  await setMapFeatures();
+  resetView();
+  renderSidebar();
+  updateBreadcrumb();
+}
+async function goToProv() {
+  if (!STATE.selectedDept) return;
+  STATE.level = 'prov';
+  STATE.selectedProv = null;
+  STATE.selectedDist = null;
+  STATE.selectedProvId = null;
+  STATE.selectedDistUbigeo = null;
+  document.getElementById('levelIndicator').textContent = 'Provincias';
+  await setMapFeatures();
+  resetView();
+  renderSidebar();
+  updateBreadcrumb();
+}
+
+// ═══════════════════════════════════════════════════
+// COLOR PICKER
+// ═══════════════════════════════════════════════════
+function openColorPicker(e, encodedCol, currentColor) {
+  e.stopPropagation();
+  const col = decodeURIComponent(encodedCol);
+  STATE.editingParty = col;
+  const picker = document.getElementById('colorPicker');
+  picker.value = currentColor;
+  picker.click();
+}
+
+document.getElementById('colorPicker').addEventListener('input', function() {
+  if (STATE.editingParty) {
+    STATE.colors[STATE.editingParty] = this.value;
+    drawMap();
+    renderSidebar();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// YEAR & ROUND TABS
+// ═══════════════════════════════════════════════════
+document.getElementById('yearTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.year-tab');
+  if (!btn || btn.classList.contains('future')) return;
+  document.querySelectorAll('.year-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  STATE.year = parseInt(btn.dataset.year);
+  STATE.level = 'dept';
+  STATE.selectedDept = null;
+  STATE.selectedProv = null;
+  STATE.selectedDist = null;
+  STATE.selectedDeptCode = null;
+  STATE.selectedProvId = null;
+  STATE.selectedDistUbigeo = null;
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('levelIndicator').textContent = 'Departamentos';
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('app').style.visibility = 'hidden';
+  updateRoundTabs();
+  loadData();
+});
+
+document.getElementById('roundTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.round-tab');
+  if (!btn || btn.classList.contains('disabled')) return;
+  document.querySelectorAll('.round-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  STATE.round = parseInt(btn.dataset.round);
+  drawMap();
+  renderSidebar();
+  updateLegend();
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+loadData();
+</script>
+</body>
+</html>
