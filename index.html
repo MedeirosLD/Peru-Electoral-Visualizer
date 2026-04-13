@@ -127,6 +127,22 @@
   .round-tab:hover { color: var(--text); }
   .round-tab.active { background: var(--surface2); color: var(--text); }
   .round-tab.disabled { opacity: 0.35; cursor: not-allowed; }
+  .auto-refresh-chip {
+    margin-left: 12px;
+    padding: 5px 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: rgba(17,19,24,0.85);
+    min-width: 148px;
+    text-align: center;
+  }
+  .auto-refresh-chip.live { color: var(--accent2); border-color: rgba(232,201,106,0.35); }
+  .auto-refresh-chip.error { color: #fca5a5; border-color: rgba(252,165,165,0.35); }
 
   /* ── SIDEBAR ── */
   #sidebar {
@@ -691,6 +707,7 @@
       <button class="year-tab future" data-year="1985" title="Próximamente">1985</button>
       <button class="year-tab future" data-year="1980" title="Próximamente">1980</button>
     </div>
+    <div class="auto-refresh-chip" id="autoRefreshChip" style="display:none"></div>
     <div class="round-tabs" id="roundTabs">
       <button class="round-tab active" data-round="1">1ª Vuelta</button>
       <button class="round-tab" data-round="2">2ª Vuelta</button>
@@ -759,6 +776,7 @@ const GOD_MODE_JOIN_MISSING = false;
 const COMPARISON_YEARS = [2021, 2016, 2011, 2006, 2001, 2000];
 const RAW_2026_PATH = './2026_apuracion/resultado_presidencial.json';
 const RESULTS_GEO_CORE_ZIP = './resultados_geo/web_core.zip';
+const AUTO_REFRESH_2026_MS = 60000;
 const RESULTS_2026_PROVINCE_ALIASES = {
   'ANCASH|ANTONIO RAIMONDI': 'ANTONIO RAYMONDI',
 };
@@ -769,6 +787,10 @@ const RESULTS_2026_DISTRICT_ALIASES = {
   'HUANCAVELICA|ANGARAES|HUALLAY GRANDE': 'HUAYLLAY GRANDE',
   'PUNO|EL COLLAO|CAPASO': 'CAPAZO',
 };
+let autoRefreshTimeoutId = null;
+let autoRefreshTickId = null;
+let autoRefreshNextAt = null;
+let autoRefreshLastError = null;
 
 const PERU_DEPTS = ['AMAZONAS','ANCASH','APURIMAC','AREQUIPA','AYACUCHO','CAJAMARCA','CALLAO','CUSCO','HUANCAVELICA','HUANUCO','ICA','JUNIN','LA LIBERTAD','LAMBAYEQUE','LIMA','LORETO','MADRE DE DIOS','MOQUEGUA','PASCO','PIURA','PUNO','SAN MARTIN','TACNA','TUMBES','UCAYALI'];
 const EXTERIOR_TOTALS_2021 = {
@@ -971,6 +993,67 @@ async function fetchJson(source) {
   const resp = await fetch(source);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} ao carregar ${source}`);
   return resp.json();
+}
+
+function appendCacheBuster(url) {
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}t=${Date.now()}`;
+}
+
+function getLive2026Source() {
+  return appendCacheBuster(RAW_2026_PATH);
+}
+
+function clearAutoRefreshTimers() {
+  if (autoRefreshTimeoutId) clearTimeout(autoRefreshTimeoutId);
+  if (autoRefreshTickId) clearInterval(autoRefreshTickId);
+  autoRefreshTimeoutId = null;
+  autoRefreshTickId = null;
+  autoRefreshNextAt = null;
+}
+
+function updateAutoRefreshUI() {
+  const chip = document.getElementById('autoRefreshChip');
+  if (!chip) return;
+  if (STATE.year !== 2026) {
+    chip.style.display = 'none';
+    chip.classList.remove('live', 'error');
+    chip.textContent = '';
+    return;
+  }
+
+  chip.style.display = 'block';
+  chip.classList.remove('live', 'error');
+  if (autoRefreshLastError) chip.classList.add('error');
+  else chip.classList.add('live');
+
+  if (!autoRefreshNextAt) {
+    chip.textContent = autoRefreshLastError
+      ? `Error remoto, usando ${sourceLabel}`
+      : `2026 en vivo · ${sourceLabel}`;
+    return;
+  }
+
+  const secs = Math.max(0, Math.ceil((autoRefreshNextAt - Date.now()) / 1000));
+  chip.textContent = autoRefreshLastError
+    ? `Reintento en ${secs}s · ${sourceLabel}`
+    : `Actualiza en ${secs}s · ${sourceLabel}`;
+}
+
+function scheduleAutoRefresh() {
+  clearAutoRefreshTimers();
+  if (STATE.year !== 2026) {
+    updateAutoRefreshUI();
+    return;
+  }
+  autoRefreshNextAt = Date.now() + AUTO_REFRESH_2026_MS;
+  updateAutoRefreshUI();
+  autoRefreshTickId = setInterval(updateAutoRefreshUI, 1000);
+  autoRefreshTimeoutId = setTimeout(async () => {
+    try {
+      await loadData({ background: true, preserveView: true });
+    } catch {}
+  }, AUTO_REFRESH_2026_MS);
 }
 
 async function fetchZipText(zipPath, entryName) {
@@ -1296,23 +1379,40 @@ function getExteriorTotals() {
   return EXTERIOR_TOTALS_2021;
 }
 
-async function loadData() {
+async function loadData(options = {}) {
+  const { background = false, preserveView = false } = options;
   let lastError = null;
   const paths = getYearPaths(STATE.year);
+  const previousView = preserveView ? {
+    level: STATE.level,
+    selectedDept: STATE.selectedDept,
+    selectedProv: STATE.selectedProv,
+    selectedDist: STATE.selectedDist,
+    selectedDeptCode: STATE.selectedDeptCode,
+    selectedProvId: STATE.selectedProvId,
+    selectedDistUbigeo: STATE.selectedDistUbigeo,
+    panX: STATE.panX,
+    panY: STATE.panY,
+    zoom: STATE.zoom,
+  } : null;
   APP.provsByDept = {};
   APP.distrsByProv = {};
   APP.runtime2026 = null;
   try {
     if (paths.useRaw2026) {
-      const [raw2026, depts] = await Promise.all([
-        fetchJson(paths.raw2026),
+      const [{ data: raw2026, source: rawSource }, depts] = await Promise.all([
+        fetchFirstJson([getRemote2026Source(), getLocal2026Source()]),
         fetchJson(paths.depts),
       ]);
+      autoRefreshLastSource = String(rawSource).includes('decideperu.com') ? 'remote' : 'local';
+      autoRefreshLastError = autoRefreshLastSource === 'local' ? 'remote_unavailable' : null;
       APP.runtime2026 = build2026Runtime(raw2026);
       APP.party_map = APP.runtime2026.party_map || {};
       APP.party_map_2v = APP.runtime2026.party_map_2v || {};
       APP.depts = apply2026DeptResults(depts);
     } else {
+      autoRefreshLastSource = null;
+      autoRefreshLastError = null;
       const [meta, depts] = await Promise.all([
         fetchJson(paths.meta),
         fetchJson(paths.depts),
@@ -1323,9 +1423,13 @@ async function loadData() {
     }
   } catch (error) {
     lastError = error;
+    if (STATE.year === 2026) autoRefreshLastError = String(error);
   }
 
   if (!APP.depts) {
+    scheduleAutoRefresh();
+    updateAutoRefreshUI();
+    if (background) return;
     const loading = document.getElementById('loading');
     loading.innerHTML = `
       <div class="loading-title">Visualizador Electoral <span>Peru</span></div>
@@ -1351,6 +1455,22 @@ async function loadData() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.visibility = 'visible';
   await initMap();
+  if (previousView && preserveView) {
+    STATE.level = previousView.level;
+    STATE.selectedDept = previousView.selectedDept;
+    STATE.selectedProv = previousView.selectedProv;
+    STATE.selectedDist = previousView.selectedDist;
+    STATE.selectedDeptCode = previousView.selectedDeptCode;
+    STATE.selectedProvId = previousView.selectedProvId;
+    STATE.selectedDistUbigeo = previousView.selectedDistUbigeo;
+    await setMapFeatures();
+    STATE.panX = previousView.panX;
+    STATE.panY = previousView.panY;
+    STATE.zoom = previousView.zoom;
+    drawMap();
+  }
+  scheduleAutoRefresh();
+  updateAutoRefreshUI();
   renderSidebar();
   updateBreadcrumb();
 }
@@ -2296,7 +2416,7 @@ function renderSidebar() {
     if (STATE.level === 'dept') {
       html += `<div style="margin-top:10px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.04em">
         ${STATE.year === 2026
-          ? 'El total nacional incluye el exterior, pero el mapa sigue usando una base territorial de referencia.'
+          ? 'El total nacional incluye el exterior, se actualiza automaticamente y el mapa usa una base territorial de referencia.'
           : 'Incluye los votos del exterior en el total nacional. El mapa muestra solo el territorio peruano.'}
       </div>`;
     }
@@ -2443,6 +2563,7 @@ document.getElementById('yearTabs').addEventListener('click', e => {
   document.getElementById('levelIndicator').textContent = 'Departamentos';
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('app').style.visibility = 'hidden';
+  updateAutoRefreshUI();
   updateRoundTabs();
   loadData();
 });
@@ -2461,6 +2582,121 @@ document.getElementById('roundTabs').addEventListener('click', e => {
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
+function updateAutoRefreshUI() {
+  const chip = document.getElementById('autoRefreshChip');
+  if (!chip) return;
+  if (STATE.year !== 2026) {
+    chip.style.display = 'none';
+    chip.classList.remove('live', 'error');
+    chip.textContent = '';
+    return;
+  }
+  chip.style.display = 'block';
+  chip.classList.remove('live', 'error');
+  if (autoRefreshLastError) chip.classList.add('error');
+  else chip.classList.add('live');
+  if (!autoRefreshNextAt) {
+    chip.textContent = autoRefreshLastError ? 'Error al actualizar 2026' : '2026 en vivo';
+    return;
+  }
+  const secs = Math.max(0, Math.ceil((autoRefreshNextAt - Date.now()) / 1000));
+  chip.textContent = autoRefreshLastError ? `Reintento en ${secs}s` : `Actualiza en ${secs}s`;
+}
+
+async function loadData(options = {}) {
+  const { background = false, preserveView = false } = options;
+  let lastError = null;
+  const paths = getYearPaths(STATE.year);
+  const previousView = preserveView ? {
+    level: STATE.level,
+    selectedDept: STATE.selectedDept,
+    selectedProv: STATE.selectedProv,
+    selectedDist: STATE.selectedDist,
+    selectedDeptCode: STATE.selectedDeptCode,
+    selectedProvId: STATE.selectedProvId,
+    selectedDistUbigeo: STATE.selectedDistUbigeo,
+    panX: STATE.panX,
+    panY: STATE.panY,
+    zoom: STATE.zoom,
+  } : null;
+
+  APP.provsByDept = {};
+  APP.distrsByProv = {};
+  APP.runtime2026 = null;
+
+  try {
+    if (paths.useRaw2026) {
+      const [raw2026, depts] = await Promise.all([
+        fetchJson(getLive2026Source()),
+        fetchJson(paths.depts),
+      ]);
+      autoRefreshLastError = null;
+      APP.runtime2026 = build2026Runtime(raw2026);
+      APP.party_map = APP.runtime2026.party_map || {};
+      APP.party_map_2v = APP.runtime2026.party_map_2v || {};
+      APP.depts = apply2026DeptResults(depts);
+    } else {
+      autoRefreshLastError = null;
+      const [meta, depts] = await Promise.all([
+        fetchJson(paths.meta),
+        fetchJson(paths.depts),
+      ]);
+      APP.party_map = meta.party_map || {};
+      APP.party_map_2v = meta.party_map_2v || {};
+      APP.depts = depts;
+    }
+  } catch (error) {
+    lastError = error;
+    if (STATE.year === 2026) autoRefreshLastError = String(error);
+  }
+
+  if (!APP.depts) {
+    scheduleAutoRefresh();
+    updateAutoRefreshUI();
+    if (background) return;
+    const loading = document.getElementById('loading');
+    loading.innerHTML = `
+      <div class="loading-title">Visualizador Electoral <span>Peru</span></div>
+      <div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0.04em;text-align:center;max-width:420px;line-height:1.5">
+        No se pudieron cargar los datos optimizados desde <code>resultados_geo</code>.<br>
+        ${String(lastError || 'Error desconocido')}
+      </div>
+    `;
+    throw lastError || new Error('No se pudieron cargar los datos del visualizador');
+  }
+
+  updateRoundTabs();
+
+  const pm = APP.party_map || {};
+  const pm2 = APP.party_map_2v || {};
+  for (const [col, info] of Object.entries(pm)) STATE.colors[col] = info.color;
+  for (const [col, info] of Object.entries(pm2)) STATE.colors[col] = info.color;
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.visibility = 'visible';
+  await initMap();
+
+  if (previousView && preserveView) {
+    STATE.level = previousView.level;
+    STATE.selectedDept = previousView.selectedDept;
+    STATE.selectedProv = previousView.selectedProv;
+    STATE.selectedDist = previousView.selectedDist;
+    STATE.selectedDeptCode = previousView.selectedDeptCode;
+    STATE.selectedProvId = previousView.selectedProvId;
+    STATE.selectedDistUbigeo = previousView.selectedDistUbigeo;
+    await setMapFeatures();
+    STATE.panX = previousView.panX;
+    STATE.panY = previousView.panY;
+    STATE.zoom = previousView.zoom;
+    drawMap();
+  }
+
+  scheduleAutoRefresh();
+  updateAutoRefreshUI();
+  renderSidebar();
+  updateBreadcrumb();
+}
+
 loadData();
 </script>
 </body>
